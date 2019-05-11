@@ -1,99 +1,107 @@
-/**
- * The MIT License (MIT)
+/*******************************************************************************
+ *   The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 Marc de Verdelhan & respective authors (see AUTHORS)
+ *   Copyright (c) 2014-2017 Marc de Verdelhan, 2017-2018 Ta4j Organization 
+ *   & respective authors (see AUTHORS)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of
+ *   this software and associated documentation files (the "Software"), to deal in
+ *   the Software without restriction, including without limitation the rights to
+ *   use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ *   the Software, and to permit persons to whom the Software is furnished to do so,
+ *   subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ *   FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ *   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ *   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ *   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *******************************************************************************/
 package org.ta4j.core.indicators.statistics;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.ta4j.core.*;
+import org.ta4j.core.BaseTimeSeries;
+import org.ta4j.core.Indicator;
+import org.ta4j.core.TimeSeries;
+import org.ta4j.core.indicators.AbstractIndicatorTest;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.VolumeIndicator;
-import org.ta4j.core.mocks.MockTick;
+import org.ta4j.core.mocks.MockBar;
+import org.ta4j.core.num.Num;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.ZonedDateTime;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertTrue;
-import static org.ta4j.core.TATestsUtils.assertDecimalEquals;
+import static org.ta4j.core.TestUtils.assertNumEquals;
 
-public class CorrelationCoefficientIndicatorTest {
-    private TimeSeries data;
+public class CorrelationCoefficientIndicatorTest extends AbstractIndicatorTest<Indicator<Num>, Num> {
 
-    private Indicator<Decimal> close, volume;
-    
+    private Indicator<Num> close, volume;
+
+    public CorrelationCoefficientIndicatorTest(Function<Number, Num> numFunction) {
+        super(numFunction);
+    }
+
     @Before
     public void setUp() {
-        List<Tick> ticks = new ArrayList<Tick>();
+        TimeSeries data = new BaseTimeSeries.SeriesBuilder().withNumTypeOf(numFunction).build();
+        int i = 20;
         // close, volume
-        ticks.add(new MockTick(6, 100));
-        ticks.add(new MockTick(7, 105));
-        ticks.add(new MockTick(9, 130));
-        ticks.add(new MockTick(12, 160));
-        ticks.add(new MockTick(11, 150));
-        ticks.add(new MockTick(10, 130));
-        ticks.add(new MockTick(11, 95));
-        ticks.add(new MockTick(13, 120));
-        ticks.add(new MockTick(15, 180));
-        ticks.add(new MockTick(12, 160));
-        ticks.add(new MockTick(8, 150));
-        ticks.add(new MockTick(4, 200));
-        ticks.add(new MockTick(3, 150));
-        ticks.add(new MockTick(4, 85));
-        ticks.add(new MockTick(3, 70));
-        ticks.add(new MockTick(5, 90));
-        ticks.add(new MockTick(8, 100));
-        ticks.add(new MockTick(9, 95));
-        ticks.add(new MockTick(11, 110));
-        ticks.add(new MockTick(10, 95));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),6,100,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),7,105,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),9,130,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),12,160,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),11,150,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),10, 130,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),11, 95,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),13,120,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),15,180,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),12,160,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),8, 150,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),4, 200,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),3, 150,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),4, 85,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),3, 70,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),5, 90,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),8, 100,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),9, 95,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i--),11, 110,numFunction));
+        data.addBar(new MockBar(ZonedDateTime.now().minusSeconds(i),10, 95,numFunction));
 
-        data = new BaseTimeSeries(ticks);
         close = new ClosePriceIndicator(data);
         volume = new VolumeIndicator(data, 2);
     }
 
     @Test
-    public void usingTimeFrame5UsingClosePriceAndVolume() {
+    public void usingBarCount5UsingClosePriceAndVolume() {
         CorrelationCoefficientIndicator coef = new CorrelationCoefficientIndicator(close, volume, 5);
 
         assertTrue(coef.getValue(0).isNaN());
-        
-		assertDecimalEquals(coef.getValue(1), 1);
-		assertDecimalEquals(coef.getValue(2), 0.8773);
-		assertDecimalEquals(coef.getValue(3), 0.9073);
-		assertDecimalEquals(coef.getValue(4), 0.9219);
-		assertDecimalEquals(coef.getValue(5), 0.9205);
-		assertDecimalEquals(coef.getValue(6), 0.4565);
-		assertDecimalEquals(coef.getValue(7), -0.4622);
-		assertDecimalEquals(coef.getValue(8), 0.05747);
-		assertDecimalEquals(coef.getValue(9), 0.1442);
-		assertDecimalEquals(coef.getValue(10), -0.1263);
-		assertDecimalEquals(coef.getValue(11), -0.5345);
-		assertDecimalEquals(coef.getValue(12), -0.7275);
-		assertDecimalEquals(coef.getValue(13), 0.1676);
-		assertDecimalEquals(coef.getValue(14), 0.2506);
-		assertDecimalEquals(coef.getValue(15), -0.2938);
-		assertDecimalEquals(coef.getValue(16), -0.3586);
-		assertDecimalEquals(coef.getValue(17), 0.1713);
-		assertDecimalEquals(coef.getValue(18), 0.9841);
-		assertDecimalEquals(coef.getValue(19), 0.9799);
+
+        assertNumEquals(1, coef.getValue(1));
+		assertNumEquals(0.8773, coef.getValue(2));
+		assertNumEquals(0.9073, coef.getValue(3));
+		assertNumEquals(0.9219, coef.getValue(4));
+		assertNumEquals(0.9205, coef.getValue(5));
+		assertNumEquals(0.4565, coef.getValue(6));
+		assertNumEquals(-0.4622, coef.getValue(7));
+		assertNumEquals(0.05747, coef.getValue(8));
+		assertNumEquals(0.1442, coef.getValue(9));
+		assertNumEquals(-0.1263, coef.getValue(10));
+		assertNumEquals(-0.5345, coef.getValue(11));
+		assertNumEquals(-0.7275, coef.getValue(12));
+		assertNumEquals(0.1676, coef.getValue(13));
+		assertNumEquals(0.2506, coef.getValue(14));
+		assertNumEquals(-0.2938, coef.getValue(15));
+		assertNumEquals(-0.3586, coef.getValue(16));
+		assertNumEquals(0.1713, coef.getValue(17));
+		assertNumEquals(0.9841, coef.getValue(18));
+		assertNumEquals(0.9799, coef.getValue(19));
     }
 }

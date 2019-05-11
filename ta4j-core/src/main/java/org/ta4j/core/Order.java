@@ -1,39 +1,42 @@
-/**
- * The MIT License (MIT)
+/*******************************************************************************
+ *   The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 Marc de Verdelhan & respective authors (see AUTHORS)
+ *   Copyright (c) 2014-2017 Marc de Verdelhan, 2017-2018 Ta4j Organization 
+ *   & respective authors (see AUTHORS)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of
+ *   this software and associated documentation files (the "Software"), to deal in
+ *   the Software without restriction, including without limitation the rights to
+ *   use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ *   the Software, and to permit persons to whom the Software is furnished to do so,
+ *   subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ *   FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ *   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ *   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ *   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *******************************************************************************/
 package org.ta4j.core;
+
+import org.ta4j.core.num.Num;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * An order.
- * <p>
+ * </p>
  * The order is defined by:
  * <ul>
- * <li>the index (in the {@link TimeSeries time series}) it is executed
- * <li>a {@link OrderType type} (BUY or SELL)
- * <li>a price (optional)
- * <li>an amount to be (or that was) ordered (optional)
+ *     <li>the index (in the {@link TimeSeries time series}) it is executed
+ *     <li>a {@link OrderType type} (BUY or SELL)
+ *     <li>a price (optional)
+ *     <li>an amount to be (or that was) ordered (optional)
  * </ul>
  * A {@link Trade trade} is a pair of complementary orders.
  */
@@ -75,19 +78,22 @@ public class Order implements Serializable {
     private int index;
 
     /** The price for the order */
-    private Decimal price = Decimal.NaN;
+    private Num price;
     
     /** The amount to be (or that was) ordered */
-    private Decimal amount = Decimal.NaN;
+    private Num amount;
     
     /**
      * Constructor.
      * @param index the index the order is executed
+     * @param series the time series
      * @param type the type of the order
      */
-    protected Order(int index, OrderType type) {
+    protected Order(int index, TimeSeries series, OrderType type) {
         this.type = type;
         this.index = index;
+        this.amount = series.numOf(1);
+        this.price = series.getBar(index).getClosePrice();
     }
 
     /**
@@ -97,9 +103,24 @@ public class Order implements Serializable {
      * @param price the price for the order
      * @param amount the amount to be (or that was) ordered
      */
-    protected Order(int index, OrderType type, Decimal price, Decimal amount) {
-        this(index, type);
+    protected Order(int index, OrderType type, Num price, Num amount) {
+        this.type = type;
+        this.index = index;
         this.price = price;
+        this.amount = amount;
+    }
+
+    /**
+     * Constructor.
+     * @param index the index the order is executed
+     * @param series the time series
+     * @param type the type of the order
+     * @param amount the amount to be (or that was) ordered
+     */
+    protected Order(int index, TimeSeries series, OrderType type, Num amount) {
+        this.type = type;
+        this.index = index;
+        this.price = series.getBar(index).getClosePrice();
         this.amount = amount;
     }
 
@@ -134,14 +155,14 @@ public class Order implements Serializable {
     /**
      * @return the price for the order
      */
-    public Decimal getPrice() {
+    public Num getPrice() {
         return price;
     }
 
     /**
      * @return the amount to be (or that was) ordered
      */
-    public Decimal getAmount() {
+    public Num getAmount() {
         return amount;
     }
 
@@ -165,13 +186,7 @@ public class Order implements Serializable {
         if (this.index != other.index) {
             return false;
         }
-        if (this.price != other.price && (this.price == null || !this.price.equals(other.price))) {
-            return false;
-        }
-        if (this.amount != other.amount && (this.amount == null || !this.amount.equals(other.amount))) {
-            return false;
-        }
-        return true;
+        return (this.price == other.price || (this.price != null && this.price.equals(other.price))) && (this.amount == other.amount || (this.amount != null && this.amount.equals(other.amount)));
     }
 
     @Override
@@ -181,10 +196,11 @@ public class Order implements Serializable {
     
     /**
      * @param index the index the order is executed
+     * @param series the time series
      * @return a BUY order
      */
-    public static Order buyAt(int index) {
-        return new Order(index, OrderType.BUY);
+    public static Order buyAt(int index, TimeSeries series) {
+        return new Order(index, series, OrderType.BUY);
     }
 
     /**
@@ -193,16 +209,27 @@ public class Order implements Serializable {
      * @param amount the amount to be (or that was) bought
      * @return a BUY order
      */
-    public static Order buyAt(int index, Decimal price, Decimal amount) {
+    public static Order buyAt(int index, Num price, Num amount) {
         return new Order(index, OrderType.BUY, price, amount);
     }
 
     /**
      * @param index the index the order is executed
+     * @param series the time series
+     * @param amount the amount to be (or that was) bought
+     * @return a BUY order
+     */
+    public static Order buyAt(int index, TimeSeries series, Num amount) {
+        return new Order(index, series, OrderType.BUY, amount);
+    }
+
+    /**
+     * @param index the index the order is executed
+     * @param series the time series
      * @return a SELL order
      */
-    public static Order sellAt(int index) {
-        return new Order(index, OrderType.SELL);
+    public static Order sellAt(int index, TimeSeries series) {
+        return new Order(index, series, OrderType.SELL);
     }
 
     /**
@@ -211,7 +238,17 @@ public class Order implements Serializable {
      * @param amount the amount to be (or that was) sold
      * @return a SELL order
      */
-    public static Order sellAt(int index, Decimal price, Decimal amount) {
+    public static Order sellAt(int index, Num price, Num amount) {
         return new Order(index, OrderType.SELL, price, amount);
+    }
+
+    /**
+     * @param index the index the order is executed
+     * @param series the time series
+     * @param amount the amount to be (or that was) bought
+     * @return a SELL order
+     */
+    public static Order sellAt(int index, TimeSeries series, Num amount) {
+        return new Order(index, series, OrderType.SELL, amount);
     }
 }

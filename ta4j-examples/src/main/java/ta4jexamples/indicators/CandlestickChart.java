@@ -1,25 +1,26 @@
-/**
- * The MIT License (MIT)
+/*******************************************************************************
+ *   The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 Marc de Verdelhan & respective authors (see AUTHORS)
+ *   Copyright (c) 2014-2017 Marc de Verdelhan, 2017-2018 Ta4j Organization 
+ *   & respective authors (see AUTHORS)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of
+ *   this software and associated documentation files (the "Software"), to deal in
+ *   the Software without restriction, including without limitation the rights to
+ *   use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ *   the Software, and to permit persons to whom the Software is furnished to do so,
+ *   subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ *   FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ *   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ *   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ *   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *******************************************************************************/
 package ta4jexamples.indicators;
 
 import org.jfree.chart.ChartFactory;
@@ -36,7 +37,7 @@ import org.jfree.data.xy.DefaultHighLowDataset;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
-import org.ta4j.core.Tick;
+import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import ta4jexamples.loaders.CsvTradesLoader;
@@ -55,30 +56,28 @@ public class CandlestickChart {
      * @return an Open-High-Low-Close dataset
      */
     private static OHLCDataset createOHLCDataset(TimeSeries series) {
-        final int nbTicks = series.getTickCount();
-        
-        Date[] dates = new Date[nbTicks];
-        double[] opens = new double[nbTicks];
-        double[] highs = new double[nbTicks];
-        double[] lows = new double[nbTicks];
-        double[] closes = new double[nbTicks];
-        double[] volumes = new double[nbTicks];
-        
-        for (int i = 0; i < nbTicks; i++) {
-            Tick tick = series.getTick(i);
-            dates[i] = new Date(tick.getEndTime().toEpochSecond() * 1000);
-            opens[i] = tick.getOpenPrice().toDouble();
-            highs[i] = tick.getMaxPrice().toDouble();
-            lows[i] = tick.getMinPrice().toDouble();
-            closes[i] = tick.getClosePrice().toDouble();
-            volumes[i] = tick.getVolume().toDouble();
+        final int nbBars = series.getBarCount();
+
+        Date[] dates = new Date[nbBars];
+        double[] opens = new double[nbBars];
+        double[] highs = new double[nbBars];
+        double[] lows = new double[nbBars];
+        double[] closes = new double[nbBars];
+        double[] volumes = new double[nbBars];
+
+        for (int i = 0; i < nbBars; i++) {
+            Bar bar = series.getBar(i);
+            dates[i] = new Date(bar.getEndTime().toEpochSecond() * 1000);
+            opens[i] = bar.getOpenPrice().doubleValue();
+            highs[i] = bar.getMaxPrice().doubleValue();
+            lows[i] = bar.getMinPrice().doubleValue();
+            closes[i] = bar.getClosePrice().doubleValue();
+            volumes[i] = bar.getVolume().doubleValue();
         }
-        
-        OHLCDataset dataset = new DefaultHighLowDataset("btc", dates, highs, lows, opens, closes, volumes);
-        
-        return dataset;
+
+        return new DefaultHighLowDataset("btc", dates, highs, lows, opens, closes, volumes);
     }
-    
+
     /**
      * Builds an additional JFreeChart dataset from a ta4j time series.
      * @param series a time series
@@ -88,9 +87,9 @@ public class CandlestickChart {
         ClosePriceIndicator indicator = new ClosePriceIndicator(series);
         TimeSeriesCollection dataset = new TimeSeriesCollection();
         org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries("Btc price");
-        for (int i = 0; i < series.getTickCount(); i++) {
-            Tick tick = series.getTick(i);
-            chartTimeSeries.add(new Second(new Date(tick.getEndTime().toEpochSecond() * 1000)), indicator.getValue(i).toDouble());
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+            chartTimeSeries.add(new Second(new Date(bar.getEndTime().toEpochSecond() * 1000)), indicator.getValue(i).doubleValue());
         }
         dataset.addSeries(chartTimeSeries);
         return dataset;
@@ -113,25 +112,25 @@ public class CandlestickChart {
         RefineryUtilities.centerFrameOnScreen(frame);
         frame.setVisible(true);
     }
-    
+
     public static void main(String[] args) {
-        /**
-         * Getting time series
+        /*
+          Getting time series
          */
         TimeSeries series = CsvTradesLoader.loadBitstampSeries();
-        
-        /**
-         * Creating the OHLC dataset
+
+        /*
+          Creating the OHLC dataset
          */
         OHLCDataset ohlcDataset = createOHLCDataset(series);
-        
-        /**
-         * Creating the additional dataset
+
+        /*
+          Creating the additional dataset
          */
         TimeSeriesCollection xyDataset = createAdditionalDataset(series);
-        
-        /**
-         * Creating the chart
+
+        /*
+          Creating the chart
          */
         JFreeChart chart = ChartFactory.createCandlestickChart(
                 "Bitstamp BTC price",
@@ -157,9 +156,9 @@ public class CandlestickChart {
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
         numberAxis.setAutoRangeIncludesZero(false);
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
-        
-        /**
-         * Displaying the chart
+
+        /*
+          Displaying the chart
          */
         displayChart(chart);
     }

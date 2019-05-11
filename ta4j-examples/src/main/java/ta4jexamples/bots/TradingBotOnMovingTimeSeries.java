@@ -1,30 +1,33 @@
-/**
- * The MIT License (MIT)
+/*******************************************************************************
+ *   The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 Marc de Verdelhan & respective authors (see AUTHORS)
+ *   Copyright (c) 2014-2017 Marc de Verdelhan, 2017-2018 Ta4j Organization 
+ *   & respective authors (see AUTHORS)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of
+ *   this software and associated documentation files (the "Software"), to deal in
+ *   the Software without restriction, including without limitation the rights to
+ *   use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ *   the Software, and to permit persons to whom the Software is furnished to do so,
+ *   subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ *   FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ *   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ *   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ *   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *******************************************************************************/
 package ta4jexamples.bots;
 
 import org.ta4j.core.*;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.num.PrecisionNum;
+import org.ta4j.core.num.Num;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 import org.ta4j.core.trading.rules.UnderIndicatorRule;
 import ta4jexamples.loaders.CsvTradesLoader;
@@ -33,25 +36,25 @@ import java.time.ZonedDateTime;
 
 /**
  * This class is an example of a dummy trading bot using ta4j.
- * <p>
+ * <p/>
  */
 public class TradingBotOnMovingTimeSeries {
 
-    /** Close price of the last tick */
-    private static Decimal LAST_TICK_CLOSE_PRICE;
+    /** Close price of the last bar */
+    private static Num LAST_BAR_CLOSE_PRICE;
 
     /**
-     * Builds a moving time series (i.e. keeping only the maxTickCount last ticks)
-     * @param maxTickCount the number of ticks to keep in the time series (at maximum)
+     * Builds a moving time series (i.e. keeping only the maxBarCount last bars)
+     * @param maxBarCount the number of bars to keep in the time series (at maximum)
      * @return a moving time series
      */
-    private static TimeSeries initMovingTimeSeries(int maxTickCount) {
+    private static TimeSeries initMovingTimeSeries(int maxBarCount) {
         TimeSeries series = CsvTradesLoader.loadBitstampSeries();
-        System.out.print("Initial tick count: " + series.getTickCount());
-        // Limitating the number of ticks to maxTickCount
-        series.setMaximumTickCount(maxTickCount);
-        LAST_TICK_CLOSE_PRICE = series.getTick(series.getEndIndex()).getClosePrice();
-        System.out.println(" (limited to " + maxTickCount + "), close price = " + LAST_TICK_CLOSE_PRICE);
+        System.out.print("Initial bar count: " + series.getBarCount());
+        // Limitating the number of bars to maxBarCount
+        series.setMaximumBarCount(maxBarCount);
+        LAST_BAR_CLOSE_PRICE = series.getBar(series.getEndIndex()).getClosePrice();
+        System.out.println(" (limited to " + maxBarCount + "), close price = " + LAST_BAR_CLOSE_PRICE);
         return series;
     }
 
@@ -83,26 +86,28 @@ public class TradingBotOnMovingTimeSeries {
      * @param max the maximum bound
      * @return a random decimal number between min and max
      */
-    private static Decimal randDecimal(Decimal min, Decimal max) {
-        Decimal randomDecimal = null;
+    private static Num randDecimal(Num min, Num max) {
+        Num randomDecimal = null;
         if (min != null && max != null && min.isLessThan(max)) {
-            randomDecimal = max.minus(min).multipliedBy(Decimal.valueOf(Math.random())).plus(min);
+            Num range = max.minus(min);
+            Num position = range.multipliedBy(PrecisionNum.valueOf(Math.random()));
+            randomDecimal = min.plus(position);
         }
         return randomDecimal;
     }
 
     /**
-     * Generates a random tick.
-     * @return a random tick
+     * Generates a random bar.
+     * @return a random bar
      */
-    private static Tick generateRandomTick() {
-        final Decimal maxRange = Decimal.valueOf("0.03"); // 3.0%
-        Decimal openPrice = LAST_TICK_CLOSE_PRICE;
-        Decimal minPrice = openPrice.minus(openPrice.multipliedBy(maxRange.multipliedBy(Decimal.valueOf(Math.random()))));
-        Decimal maxPrice = openPrice.plus(openPrice.multipliedBy(maxRange.multipliedBy(Decimal.valueOf(Math.random()))));
-        Decimal closePrice = randDecimal(minPrice, maxPrice);
-        LAST_TICK_CLOSE_PRICE = closePrice;
-        return new BaseTick(ZonedDateTime.now(), openPrice, maxPrice, minPrice, closePrice, Decimal.ONE);
+    private static Bar generateRandomBar() {
+        final Num maxRange = PrecisionNum.valueOf("0.03"); // 3.0%
+        Num openPrice = LAST_BAR_CLOSE_PRICE;
+        Num minPrice = openPrice.minus(maxRange.multipliedBy(PrecisionNum.valueOf(Math.random())));
+        Num maxPrice = openPrice.plus(maxRange.multipliedBy(PrecisionNum.valueOf(Math.random())));
+        Num closePrice = randDecimal(minPrice, maxPrice);
+        LAST_BAR_CLOSE_PRICE = closePrice;
+        return new BaseBar(ZonedDateTime.now(), openPrice, maxPrice, minPrice, closePrice, PrecisionNum.valueOf(1), PrecisionNum.valueOf(1));
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -113,43 +118,43 @@ public class TradingBotOnMovingTimeSeries {
 
         // Building the trading strategy
         Strategy strategy = buildStrategy(series);
-        
+
         // Initializing the trading history
         TradingRecord tradingRecord = new BaseTradingRecord();
         System.out.println("************************************************************");
-        
-        /**
-         * We run the strategy for the 50 next ticks.
+
+        /*
+          We run the strategy for the 50 next bars.
          */
         for (int i = 0; i < 50; i++) {
 
-            // New tick
+            // New bar
             Thread.sleep(30); // I know...
-            Tick newTick = generateRandomTick();
+            Bar newBar = generateRandomBar();
             System.out.println("------------------------------------------------------\n"
-                    + "Tick "+i+" added, close price = " + newTick.getClosePrice().toDouble());
-            series.addTick(newTick);
-            
+                    + "Bar "+i+" added, close price = " + newBar.getClosePrice().doubleValue());
+            series.addBar(newBar);
+
             int endIndex = series.getEndIndex();
             if (strategy.shouldEnter(endIndex)) {
                 // Our strategy should enter
                 System.out.println("Strategy should ENTER on " + endIndex);
-                boolean entered = tradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
+                boolean entered = tradingRecord.enter(endIndex, newBar.getClosePrice(), PrecisionNum.valueOf(10));
                 if (entered) {
                     Order entry = tradingRecord.getLastEntry();
                     System.out.println("Entered on " + entry.getIndex()
-                            + " (price=" + entry.getPrice().toDouble()
-                            + ", amount=" + entry.getAmount().toDouble() + ")");
+                            + " (price=" + entry.getPrice().doubleValue()
+                            + ", amount=" + entry.getAmount().doubleValue() + ")");
                 }
             } else if (strategy.shouldExit(endIndex)) {
                 // Our strategy should exit
                 System.out.println("Strategy should EXIT on " + endIndex);
-                boolean exited = tradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
+                boolean exited = tradingRecord.exit(endIndex, newBar.getClosePrice(), PrecisionNum.valueOf(10));
                 if (exited) {
                     Order exit = tradingRecord.getLastExit();
                     System.out.println("Exited on " + exit.getIndex()
-                            + " (price=" + exit.getPrice().toDouble()
-                            + ", amount=" + exit.getAmount().toDouble() + ")");
+                            + " (price=" + exit.getPrice().doubleValue()
+                            + ", amount=" + exit.getAmount().doubleValue() + ")");
                 }
             }
         }
